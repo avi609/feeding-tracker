@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7c5cff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="מעקב האכלות">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>מעקב האכלות</title>
+<style>
+:root{
+  --bg:#f5f3ff; --card:#ffffff; --text:#1e1b2e; --muted:#6b6785; --line:#e6e2f5;
+  --primary:#7c5cff; --primary-ink:#ffffff;
+  --breast:#ec6aa5; --breast-bg:#fde8f2;
+  --bottle:#3b9cf5; --bottle-bg:#e3f1fe;
+  --both:#8a63e6; --both-bg:#ece5fd;
+  --danger:#d93f4c; --shadow:0 6px 20px rgba(60,40,120,.10);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#14121f; --card:#1f1c30; --text:#f1eefc; --muted:#a29dc0; --line:#322e4b;
+    --primary:#947bff; --primary-ink:#14121f;
+    --breast-bg:#3a1f31; --bottle-bg:#17304a; --both-bg:#2b2350;
+    --shadow:0 6px 20px rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Hebrew",Arial,sans-serif;
+  padding:0 16px calc(110px + env(safe-area-inset-bottom));
+  max-width:560px;margin:0 auto;
+}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+header{padding:calc(18px + env(safe-area-inset-top)) 0 10px;display:flex;align-items:center;justify-content:space-between}
+h1{font-size:22px;margin:0}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.icon-btn{width:44px;height:44px;border-radius:14px;background:var(--card);box-shadow:var(--shadow);font-size:20px}
+
+/* hero: time since last */
+.hero{
+  background:linear-gradient(135deg,#7c5cff,#a78bff);color:#fff;border-radius:24px;
+  padding:20px;box-shadow:var(--shadow);margin-top:6px;
+}
+.hero .label{opacity:.85;font-size:14px}
+.hero .big{font-size:44px;font-weight:800;line-height:1.1;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.hero .meta{display:flex;gap:8px;flex-wrap:wrap;font-size:13px}
+.pill{background:rgba(255,255,255,.2);border-radius:999px;padding:5px 11px}
+
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.stat{background:var(--card);border-radius:18px;padding:12px 8px;text-align:center;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:24px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+
+section{margin-top:18px}
+h2{font-size:16px;margin:0 0 10px}
+.card{background:var(--card);border-radius:20px;padding:14px;box-shadow:var(--shadow)}
+
+/* chart */
+.chart{display:flex;align-items:flex-end;gap:8px;height:150px;padding-top:8px}
+.col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+.col .val{font-size:11px;color:var(--muted);height:16px;font-variant-numeric:tabular-nums}
+.col .bar{width:100%;max-width:34px;border-radius:8px 8px 4px 4px;background:var(--bottle);min-height:4px;transition:height .4s}
+.col.today .bar{background:var(--primary)}
+.col .day{font-size:12px;margin-top:6px;color:var(--muted)}
+.col.today .day{color:var(--text);font-weight:700}
+.legend{font-size:12px;color:var(--muted);margin-top:10px;display:flex;justify-content:space-between}
+
+/* list */
+.day-head{display:flex;justify-content:space-between;align-items:baseline;margin:16px 4px 8px;font-weight:700}
+.day-head small{color:var(--muted);font-weight:400;font-size:12px}
+.entry{
+  width:100%;display:flex;align-items:center;gap:12px;text-align:start;
+  background:var(--card);border-radius:16px;padding:12px;margin-bottom:8px;box-shadow:var(--shadow);
+}
+.badge{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex:none}
+.badge.breast{background:var(--breast-bg)} .badge.bottle{background:var(--bottle-bg)} .badge.both{background:var(--both-bg)}
+.entry .t{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.entry .d{font-size:13px;color:var(--muted)}
+.entry .ml{margin-inline-start:auto;font-weight:800;font-size:18px;font-variant-numeric:tabular-nums}
+.entry .ml small{font-weight:500;font-size:12px;color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:28px 10px}
+
+/* FAB */
+.fab{
+  position:fixed;inset-inline:16px;bottom:calc(16px + env(safe-area-inset-bottom));
+  max-width:528px;margin:0 auto;height:60px;border-radius:20px;
+  background:var(--primary);color:var(--primary-ink);font-size:18px;font-weight:800;
+  box-shadow:0 10px 26px rgba(124,92,255,.45);z-index:5;
+}
+
+/* sheet */
+.overlay{position:fixed;inset:0;background:rgba(10,8,25,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+.overlay.open{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;inset-inline:0;bottom:0;background:var(--card);border-radius:26px 26px 0 0;
+  max-width:560px;margin:0 auto;padding:12px 18px calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(105%);transition:transform .25s ease;z-index:11;max-height:92vh;overflow:auto;
+}
+.sheet.open{transform:none}
+.grab{width:42px;height:5px;border-radius:9px;background:var(--line);margin:0 auto 12px}
+.sheet h3{margin:0 0 14px;font-size:19px}
+.lbl{font-size:13px;color:var(--muted);margin:14px 0 6px;display:block}
+.types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.type{
+  border:2px solid var(--line);border-radius:18px;padding:12px 4px;text-align:center;font-size:13px;font-weight:600;
+  display:flex;flex-direction:column;gap:4px;align-items:center;min-height:86px;justify-content:center;
+}
+.type .e{font-size:28px}
+.type.sel[data-type=breast]{border-color:var(--breast);background:var(--breast-bg)}
+.type.sel[data-type=bottle]{border-color:var(--bottle);background:var(--bottle-bg)}
+.type.sel[data-type=both]{border-color:var(--both);background:var(--both-bg)}
+.ml-row{display:flex;align-items:center;gap:10px}
+.step{width:54px;height:54px;border-radius:16px;background:var(--bg);font-size:26px;font-weight:700}
+.ml-in{flex:1;text-align:center;font-size:34px;font-weight:800;border:2px solid var(--line);border-radius:16px;height:54px;background:transparent;color:var(--text);width:100%;min-width:0;font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:9px 14px;border-radius:999px;background:var(--bg);font-weight:600}
+.chip.sel{background:var(--primary);color:var(--primary-ink)}
+.time-row{display:flex;gap:8px}
+.time-in{flex:1;height:52px;border:2px solid var(--line);border-radius:16px;background:transparent;color:var(--text);font:inherit;font-size:18px;padding:0 12px;min-width:0}
+.now{padding:0 16px;border-radius:16px;background:var(--bg);font-weight:700}
+.err{color:var(--danger);font-size:13px;min-height:18px;margin-top:8px}
+.actions{display:flex;gap:8px;margin-top:8px}
+.save{flex:1;height:56px;border-radius:18px;background:var(--primary);color:var(--primary-ink);font-weight:800;font-size:18px}
+.del{width:56px;height:56px;border-radius:18px;background:var(--bg);color:var(--danger);font-size:22px}
+.menu-item{display:block;width:100%;text-align:start;padding:16px 8px;border-bottom:1px solid var(--line);font-size:17px}
+.menu-item:last-child{border:0}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);background:#222;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;transition:.25s;z-index:20;pointer-events:none;font-size:14px}
+.toast.show{opacity:1;transform:translateX(-50%)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🍼 מעקב האכלות</h1>
+    <div class="sub" id="today-label"></div>
+  </div>
+  <button class="icon-btn" id="menu-btn" aria-label="תפריט">⋯</button>
+</header>
+
+<div class="hero">
+  <div class="label">עברו מההאכלה האחרונה</div>
+  <div class="big" id="since">—</div>
+  <div class="meta">
+    <span class="pill" id="last-info">אין האכלות עדיין</span>
+    <span class="pill" id="next-info" hidden></span>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="stat"><b id="s-count">0</b><span>האכלות היום</span></div>
+  <div class="stat"><b id="s-ml">0</b><span>מ״ל בבקבוק</span></div>
+  <div class="stat"><b id="s-breast">0</b><span>הנקות</span></div>
+</div>
+
+<section>
+  <h2>7 הימים האחרונים (מ״ל בבקבוק)</h2>
+  <div class="card">
+    <div class="chart" id="chart"></div>
+    <div class="legend"><span id="avg-ml"></span><span id="avg-cnt"></span></div>
+  </div>
+</section>
+
+<section>
+  <h2>היסטוריה</h2>
+  <div id="list"></div>
+</section>
+
+<button class="fab" id="add-btn">＋ הוספת האכלה</button>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <h3 id="sheet-title">האכלה חדשה</h3>
+
+  <span class="lbl">סוג</span>
+  <div class="types" id="types">
+    <button class="type" data-type="breast"><span class="e">🤱</span>הנקה בלבד</button>
+    <button class="type" data-type="bottle"><span class="e">🍼</span>בקבוק בלבד</button>
+    <button class="type" data-type="both"><span class="e">🤱🍼</span>הנקה + בקבוק</button>
+  </div>
+
+  <div id="ml-block" hidden>
+    <span class="lbl">כמות בבקבוק (מ״ל)</span>
+    <div class="ml-row">
+      <button class="step" id="ml-plus" aria-label="הוסף 10">＋</button>
+      <input class="ml-in" id="ml" type="number" inputmode="numeric" min="0" max="500" placeholder="0">
+      <button class="step" id="ml-minus" aria-label="הפחת 10">－</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <span class="lbl">שעה</span>
+  <div class="time-row">
+    <input class="time-in" id="when" type="datetime-local">
+    <button class="now" id="now-btn">עכשיו</button>
+  </div>
+
+  <div class="err" id="err"></div>
+  <div class="actions">
+    <button class="save" id="save">שמירה</button>
+    <button class="del" id="del" hidden aria-label="מחיקה">🗑</button>
+  </div>
+</div>
+
+<div class="sheet" id="menu-sheet">
+  <div class="grab"></div>
+  <button class="menu-item" id="export-csv">📄 ייצוא לאקסל (CSV)</button>
+  <button class="menu-item" id="export-json">💾 גיבוי נתונים (JSON)</button>
+  <button class="menu-item" id="import-json">📥 שחזור מגיבוי</button>
+  <button class="menu-item" id="clear-all" style="color:var(--danger)">🗑 מחיקת כל הנתונים</button>
+  <input type="file" id="file" accept="application/json" hidden>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const KEY = 'feedings.v1', LAST_ML = 'feedings.lastMl';
+  const $ = id => document.getElementById(id);
+  const TYPES = {
+    breast: {label: 'הנקה', icon: '🤱'},
+    bottle: {label: 'בקבוק', icon: '🍼'},
+    both:   {label: 'הנקה + בקבוק', icon: '🤱🍼'},
+  };
+  const PRESETS = [30, 60, 90, 120, 150, 180];
+  const DAYS = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch {} };
+  let items = load();
+  let form = {id: null, type: 'bottle', ml: '', ts: Date.now()};
+
+  const pad = n => String(n).padStart(2, '0');
+  const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+  const hhmm = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const toLocalInput = ts => `${dayKey(ts)}T${hhmm(ts)}`;
+  const dayTitle = key => {
+    const [y,m,d] = key.split('-').map(Number), dt = new Date(y, m-1, d);
+    const t0 = dayKey(Date.now()), y0 = dayKey(Date.now() - 864e5);
+    const base = `${DAYS[dt.getDay()]} ${d}/${m}`;
+    return key === t0 ? `היום · ${base}` : key === y0 ? `אתמול · ${base}` : `יום ${base}`;
+  };
+  const dur = ms => {
+    const m = Math.max(0, Math.round(ms / 60000)), h = Math.floor(m / 60);
+    return h ? `${h}:${pad(m % 60)} שע׳` : `${m} דק׳`;
+  };
+
+  /* ---------- render ---------- */
+  function render() {
+    items.sort((a, b) => b.ts - a.ts);
+    const now = Date.now(), today = dayKey(now);
+    $('today-label').textContent = dayTitle(today).replace('היום · ', 'יום ');
+
+    const todays = items.filter(i => dayKey(i.ts) === today);
+    $('s-count').textContent = todays.length;
+    $('s-ml').textContent = todays.reduce((s, i) => s + (i.ml || 0), 0);
+    $('s-breast').textContent = todays.filter(i => i.type !== 'bottle').length;
+
+    renderSince();
+    renderChart();
+    renderList();
+  }
+
+  function renderSince() {
+    const last = items.find(i => i.ts <= Date.now()) || null;
+    if (!last) { $('since').textContent = '—'; $('last-info').textContent = 'אין האכלות עדיין'; $('next-info').hidden = true; return; }
+    $('since').textContent = dur(Date.now() - last.ts);
+    const t = TYPES[last.type];
+    $('last-info').textContent = `${t.icon} ${hhmm(last.ts)}${last.ml ? ` · ${last.ml} מ״ל` : ''}`;
+    // average interval over the last 24h of entries
+    const recent = items.filter(i => i.ts > Date.now() - 864e5 && i.ts <= Date.now());
+    if (recent.length >= 3) {
+      const gaps = [];
+      for (let k = 0; k < recent.length - 1; k++) gaps.push(recent[k].ts - recent[k+1].ts);
+      const avg = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+      $('next-info').hidden = false;
+      $('next-info').textContent = `הבאה בערך ב-${hhmm(last.ts + avg)}`;
+    } else $('next-info').hidden = true;
+  }
+
+  function renderChart() {
+    const days = [];
+    for (let k = 6; k >= 0; k--) {
+      const d = new Date(); d.setDate(d.getDate() - k);
+      const key = dayKey(d.getTime());
+      const list = items.filter(i => dayKey(i.ts) === key);
+      days.push({key, d, ml: list.reduce((s, i) => s + (i.ml || 0), 0), cnt: list.length});
+    }
+    const max = Math.max(100, ...days.map(x => x.ml));
+    $('chart').innerHTML = days.map((x, idx) => `
+      <div class="col ${idx === 6 ? 'today' : ''}">
+        <div class="val">${x.ml || ''}</div>
+        <div class="bar" style="height:${Math.round(x.ml / max * 100)}px"></div>
+        <div class="day">${DAYS[x.d.getDay()]}</div>
+      </div>`).join('');
+    const active = days.filter(x => x.cnt);
+    $('avg-ml').textContent = active.length ? `ממוצע: ${Math.round(active.reduce((s, x) => s + x.ml, 0) / active.length)} מ״ל ליום` : '';
+    $('avg-cnt').textContent = active.length ? `${(active.reduce((s, x) => s + x.cnt, 0) / active.length).toFixed(1)} האכלות ליום` : '';
+  }
+
+  function renderList() {
+    if (!items.length) { $('list').innerHTML = '<div class="empty">עוד לא נרשמו האכלות.<br>לחצי על ״הוספת האכלה״ כדי להתחיל.</div>'; return; }
+    const groups = new Map();
+    for (const i of items) { const k = dayKey(i.ts); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); }
+    let html = '', n = 0;
+    for (const [key, list] of groups) {
+      if (++n > 30) break;
+      const ml = list.reduce((s, i) => s + (i.ml || 0), 0);
+      html += `<div class="day-head"><span>${dayTitle(key)}</span><small>${list.length} האכלות · ${ml} מ״ל</small></div>`;
+      list.forEach((i, idx) => {
+        const next = list[idx + 1];
+        const gap = next ? `${dur(i.ts - next.ts)} מההאכלה הקודמת` : '';
+        html += `<button class="entry" data-id="${i.id}">
+          <span class="badge ${i.type}">${TYPES[i.type].icon}</span>
+          <span><div class="t">${hhmm(i.ts)}</div><div class="d">${TYPES[i.type].label}${gap ? ' · ' + gap : ''}</div></span>
+          ${i.ml ? `<span class="ml">${i.ml}<small> מ״ל</small></span>` : ''}
+        </button>`;
+      });
+    }
+    $('list').innerHTML = html;
+  }
+
+  /* ---------- sheet ---------- */
+  function openSheet(el) { $('overlay').classList.add('open'); el.classList.add('open'); }
+  function closeSheets() { $('overlay').classList.remove('open'); $('sheet').classList.remove('open'); $('menu-sheet').classList.remove('open'); }
+
+  function syncForm() {
+    document.querySelectorAll('.type').forEach(b => b.classList.toggle('sel', b.dataset.type === form.type));
+    $('ml-block').hidden = form.type === 'breast';
+    $('ml').value = form.ml === '' ? '' : form.ml;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('sel', Number(c.dataset.v) === Number(form.ml)));
+    $('when').value = toLocalInput(form.ts);
+    $('err').textContent = '';
+  }
+
+  function openForm(id) {
+    const it = id ? items.find(x => x.id === id) : null;
+    if (it) form = {id: it.id, type: it.type, ml: it.ml || '', ts: it.ts};
+    else {
+      let last = ''; try { last = localStorage.getItem(LAST_ML) || ''; } catch {}
+      form = {id: null, type: 'bottle', ml: last ? Number(last) : '', ts: Date.now()};
+    }
+    $('sheet-title').textContent = it ? 'עריכת האכלה' : 'האכלה חדשה';
+    $('del').hidden = !it;
+    syncForm();
+    openSheet($('sheet'));
+  }
+
+  function save() {
+    const ts = new Date($('when').value).getTime();
+    if (!ts) { $('err').textContent = 'יש לבחור שעה'; return; }
+    if (ts > Date.now() + 60000) { $('err').textContent = 'לא ניתן לרשום האכלה בעתיד'; return; }
+    let ml = 0;
+    if (form.type !== 'breast') {
+      ml = Number($('ml').value);
+      if (!(ml > 0) || ml > 500) { $('err').textContent = 'יש להזין כמות תקינה במ״ל'; $('ml').focus(); return; }
+      try { localStorage.setItem(LAST_ML, String(ml)); } catch {}
+    }
+    if (form.id) {
+      const it = items.find(x => x.id === form.id);
+      Object.assign(it, {type: form.type, ml, ts});
+    } else items.push({id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), type: form.type, ml, ts});
+    persist(); closeSheets(); render(); toast('נשמר ✓');
+  }
+
+  /* ---------- events ---------- */
+  $('chips').innerHTML = PRESETS.map(v => `<button class="chip" data-v="${v}">${v}</button>`).join('');
+  $('chips').addEventListener('click', e => { const c = e.target.closest('.chip'); if (c) { form.ml = Number(c.dataset.v); syncForm(); } });
+  $('types').addEventListener('click', e => { const b = e.target.closest('.type'); if (b) { form.type = b.dataset.type; syncForm(); } });
+  $('ml').addEventListener('input', () => { form.ml = $('ml').value === '' ? '' : Number($('ml').value); document.querySelectorAll('.chip').forEach(c => c.classList.toggle('sel', Number(c.dataset.v) === form.ml)); });
+  $('ml-plus').onclick = () => { form.ml = Math.min(500, (Number(form.ml) || 0) + 10); syncForm(); };
+  $('ml-minus').onclick = () => { form.ml = Math.max(0, (Number(form.ml) || 0) - 10); syncForm(); };
+  $('when').addEventListener('change', () => { const t = new Date($('when').value).getTime(); if (t) form.ts = t; });
+  $('now-btn').onclick = () => { form.ts = Date.now(); syncForm(); };
+  $('add-btn').onclick = () => openForm(null);
+  $('save').onclick = save;
+  $('del').onclick = () => { if (confirm('למחוק את ההאכלה הזו?')) { items = items.filter(x => x.id !== form.id); persist(); closeSheets(); render(); toast('נמחק'); } };
+  $('overlay').onclick = closeSheets;
+  $('list').addEventListener('click', e => { const b = e.target.closest('.entry'); if (b) openForm(b.dataset.id); });
+  $('menu-btn').onclick = () => openSheet($('menu-sheet'));
+
+  /* ---------- export / import ---------- */
+  function download(name, text, mime) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], {type: mime}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  }
+  $('export-csv').onclick = () => {
+    const rows = ['תאריך,שעה,סוג,מ"ל'].concat([...items].sort((a, b) => a.ts - b.ts).map(i => `${dayKey(i.ts)},${hhmm(i.ts)},${TYPES[i.type].label},${i.ml || 0}`));
+    download('feedings.csv', '﻿' + rows.join('\n'), 'text/csv'); closeSheets();
+  };
+  $('export-json').onclick = () => { download('feedings-backup.json', JSON.stringify(items, null, 1), 'application/json'); closeSheets(); };
+  $('import-json').onclick = () => $('file').click();
+  $('file').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (!Array.isArray(data) || !data.every(x => x && x.ts && TYPES[x.type])) throw 0;
+      const ids = new Set(items.map(x => x.id));
+      data.forEach(x => { if (!ids.has(x.id)) items.push({id: x.id || Math.random().toString(36).slice(2), type: x.type, ml: x.ml || 0, ts: x.ts}); });
+      persist(); closeSheets(); render(); toast('הנתונים שוחזרו ✓');
+    } catch { toast('קובץ לא תקין'); }
+    e.target.value = '';
+  };
+  $('clear-all').onclick = () => { if (confirm('למחוק את כל הנתונים? לא ניתן לשחזר.')) { items = []; persist(); closeSheets(); render(); toast('הכל נמחק'); } };
+
+  let tt; function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800); }
+
+  render();
+  setInterval(renderSince, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
